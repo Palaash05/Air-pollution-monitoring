@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta charset="utf-8">
+    <title>Air Pollution Map</title>
+    <style>
+        /* Always set the map height explicitly to define the size of the div
+         * element that contains the map. */
+        #map {
+            height: 100%;
+        }
+
+        /* Optional: Makes the sample page fill the window. */
+        html,
+        body {
+            height: 100%;
+            margin: 0;
+            padding: 0;
+        }
+    </style>
+    <script src="https://apis.mapmyindia.com/advancedmaps/v1/umafkotu9jtdvhspo94rqas292a745sx/map_load?v=1.3"></script>
+</head>
+
+<body>
+    <p style="text-align:center;">
+        ENTER LATITUDE AND LONGITUDE:
+        <br>
+        <input type="text" name="LONGITUDE" id="LONGITUDE">&nbsp;
+        <input type="text" name="LATITUDE" id="LATITUDE"><br>
+        <button onclick="retrieve()">
+            submit
+        </button><br>
+        <button onclick="maxpollution()">
+            Maximum Pollution
+        </button>
+        <br>
+        <div style="text-align: center" id="output1"></div>
+    </p>
+
+
+    <!-- The core Firebase JS SDK is always required and must be listed first -->
+    <script src="https://www.gstatic.com/firebasejs/7.2.3/firebase-app.js"></script>
+
+    <script src="https://www.gstatic.com/firebasejs/7.2.3/firebase-database.js"></script>
+    <!-- TODO: Add SDKs for Firebase products that you want to use
+     https://firebase.google.com/docs/web/setup#available-libraries -->
+    <script src="https://www.gstatic.com/firebasejs/7.2.3/firebase-analytics.js"></script>
+
+    <script>
+        // Your web app's Firebase configuration
+        var firebaseConfig = {
+            apiKey: "AIzaSyC4ARu4_Jq6KnIXwwhEI3o8zO8izPMsVgg",
+            authDomain: "data-transfer-e1ae6.firebaseapp.com",
+            databaseURL: "https://data-transfer-e1ae6.firebaseio.com",
+            projectId: "data-transfer-e1ae6",
+            storageBucket: "data-transfer-e1ae6.appspot.com",
+            messagingSenderId: "253825897920",
+            appId: "1:253825897920:web:d611cb8a665637a48b2425",
+            measurementId: "G-N7X9Z4ZV2C"
+        };
+        // Initialize Firebase
+        firebase.initializeApp(firebaseConfig);
+        firebase.analytics();
+    </script>
+    <div id="map"></div>
+    <center>
+        <script>
+            var database = firebase.database();
+
+            function retrieveuserdata(location) {
+                database.ref(location).on('value', function (childsnapshot) {
+                    console.log('Details', childsnapshot.val());
+                    pollution = childsnapshot.val();
+                    var output = document.getElementById("output1");
+                    output.innerHTML = "Pollution " + pollution;
+                });
+
+            }
+
+            var map = new MapmyIndia.Map("map", { center: [13.55, 80.02], zoomControl: true, hybrid: true });
+
+            function retrieve() {
+                var lat = document.getElementById("LATITUDE").value;
+                var lon = document.getElementById("LONGITUDE").value;
+                var coordinates = lat.concat("-", lon);
+                coordinates = coordinates.replace(/\./g, "\'");
+                console.log(coordinates);
+                retrieveuserdata(coordinates);
+                L.marker([lat, lon]).addTo(map);
+                currentDiameter = L.circle([lat, lon],
+                    {
+                        color: 'yellow',
+                        fillColor: '#ffff00',
+                        fillOpacity: 0.5,
+                        radius: 100
+                    });
+
+                currentDiameter.addTo(map);
+            }
+            function maxpollution() {
+                database.ref().on('value', function (snapshot) {
+                    snapshot.forEach(function (childsnapshot) {
+                        var level = childsnapshot.val();
+                        var coordinates = childsnapshot.key;
+                        coordinates = coordinates.replace(/\'/g, "\.");
+                        var txt = coordinates.split("-");
+
+                        if (level > 10) {
+                            //new L.marker([txt[0], txt[1]]).addTo(map);
+                            currentDiameter = L.circle([txt[0], txt[1]],
+                                {
+                                    color: 'red',
+                                    fillColor: '#ff0000',
+                                    fillOpacity: 0.5,
+                                    radius: 100
+                                });
+
+                            currentDiameter.addTo(map);
+                            console.log('Details', txt[0], txt[1]);
+                        }
+                    });
+                });
+            }
+
+        </script>
+    </center>
+</body>
+
+</html>

@@ -6,82 +6,17 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta charset="utf-8">
     <title>Air Pollution Map</title>
-    <style>
-        /* Always set the map height explicitly to define the size of the div
-         * element that contains the map. */
-        #map {
-            height: 100%;
-            margin: 25px 50px 75px 50px;
-            border-style: solid;
-            border-width: 10px;
-            border-color: black;
-            ;
 
-        }
-
-        /* Optional: Makes the sample page fill the window. */
-        html,
-        body {
-            height: 100%;
-            margin: 0;
-            background-color: #a7c464;
-        }
-
-        @media screen and (max-width: 600px) {
-            body {
-                background-color: olive;
-            }
-
-            p {
-                font-size: 20px;
-            }
-        }
-
-        button {
-            border-radius: 5px;
-            margin: 5px 5px 5px 0px;
-            display: inline-block;
-            text-align: center;
-            font-size: 25px;
-            padding: 10px;
-            width: 250px;
-            background-color: #f1f1f1;
-            color: black;
-            border: none;
-            cursor: pointer;
-
-
-        }
-
-        button:hover {
-            background-color: black;
-            color: white;
-
-
-        }
-    </style>
+    <!--CSS part of the code.-->
+    <link rel="stylesheet" href="css/style.css" type="text/css">
+    <!--CSS part ends here.
+    
+    Map API included of Mapmyindia.-->
     <script src="https://apis.mapmyindia.com/advancedmaps/v1/umafkotu9jtdvhspo94rqas292a745sx/map_load?v=1.3"></script>
-</head>
-
-<body>
-
-    <p style="text-align:center;">
-        ENTER LONGITUDE AND LATITUDE:
-        <br>
-        <input type="text" name="LONGITUDE" id="LONGITUDE">&nbsp;
-        <input type="text" name="LATITUDE" id="LATITUDE"><br>
-        <button onclick="retrieve()" id="submit">
-            submit
-        </button><br>
-        <button onclick=" maxpollution()" id="Maximum Pollution" style="vertical-align:middle"><span>
-                Maximum Pollution
-            </span>
-        </button>
-        <br>
-        <div style="text-align: center" id="output1"></div>
-    </p>
+    <script src="https://canvasjs.com/assets/script/canvasjs.min.js"></script>
 
 
+    <!--included the firebase database links.-->
     <!-- The core Firebase JS SDK is always required and must be listed first -->
     <script src="https://www.gstatic.com/firebasejs/7.2.3/firebase-app.js"></script>
 
@@ -90,6 +25,10 @@
      https://firebase.google.com/docs/web/setup#available-libraries -->
     <script src="https://www.gstatic.com/firebasejs/7.2.3/firebase-analytics.js"></script>
 
+
+</head>
+
+<body>
     <script>
         // Your web app's Firebase configuration
         var firebaseConfig = {
@@ -106,51 +45,158 @@
         firebase.initializeApp(firebaseConfig);
         firebase.analytics();
     </script>
+    <!--The entry boxes and buttons includeded in this part.-->
     <div id="map"></div>
-    <center>
-        <script>
-            var database = firebase.database();
 
-            function retrieveuserdata(location) {
-                database.ref(location).on('value', function (childsnapshot) {
-                    console.log('Details', childsnapshot.val());
-                    pollution = childsnapshot.val();
-                    var output = document.getElementById("output1");
-                    output.innerHTML = "Pollution " + pollution;
+    <div id="entry">
+
+        <div class="items">
+
+            <input type="text" name="LONGITUDE" id="LONGITUDE" placeholder="Latitude">&nbsp;
+            <input type="text" name="LATITUDE" id="LATITUDE" placeholder="Longitude">
+        </div>
+
+        <!--Button for submitting the coordinates to the retrieve function.-->
+        <div class="items">
+
+            <button onclick="retrieve()" id="submit">
+                submit
+            </button>
+
+
+            <!--Button for mapping all the places that have pollution above a certain point.-->
+            <button onclick=" maxpollution()" id="Maximum Pollution" style="vertical-align:middle"><span>
+                    Maximum Pollution
+                </span>
+            </button>
+        </div>
+
+    </div>
+
+
+    <div id="chartContainer">
+    </div>
+
+
+
+    <!--javascript Part-->
+    <script>
+        var database = firebase.database();
+        var dataPoints = [];
+        //
+        //function for searching the entered coordinated into the saved database.
+        //
+        function retrieveuserdata(location) {
+            database.ref(location).on('value', function (childsnapshot) {
+                childsnapshot.forEach(function (snapshot) {
+
+                    pollution = snapshot.val();
+                    moment = snapshot.key;
+                    moment = moment.replace(/\-/g, '\.')
+                    console.log('Details', moment);
+                    dataPoints.push({
+                        y: parseFloat(pollution),
+                        x: parseFloat(moment),
+                    });
                 });
 
-            }
+            });
+            return dataPoints;
+        }
 
-            var map = new MapmyIndia.Map("map", { center: [13.55, 80.02], zoomControl: true, hybrid: true });
+        function buildchart(location) {
+            var chart = new CanvasJS.Chart("chartContainer", {
 
-            function retrieve() {
-                var lat = document.getElementById("LATITUDE").value;
-                var lon = document.getElementById("LONGITUDE").value;
-                var coordinates = lat.concat("-", lon);
+                theme: "light1",
+                animationEnabled: true,
+                dataPointWidth: 20,
+                title: {
+                    dockInsidePlotArea: true,
+                    text: "Pollution Data"
+                },
+                axisY: {
+                    title: "Pollution content",
+                },
+                axisX: {
+                    title: "Time",
+                    maximum: 6,
+                },
+                toolTip: {
+                    animationEnabled: true,
+                },
+                data: [
+                    {
+                        type: "bar",
+                        dataPoints: retrieveuserdata(location)
+                    }
+                ]
+            });
+            chart.render();
+
+        }
+
+        //included the map into the page.
+        var map = new MapmyIndia.Map("map", { center: [13.55, 80.02], zoomControl: true, hybrid: true });
+        //
+        //Function that changes the entered coordinates into a certain format and passes them to retrieveuserdata function.             
+        //
+        function retrieve() {
+            var lat = document.getElementById("LATITUDE").value;
+            var lon = document.getElementById("LONGITUDE").value;
+            lat = parseFloat(lat).toFixed(6);
+            lon = parseFloat(lon).toFixed(6);
+            var min = 100;
+            var Lat;
+            var Lon;
+            database.ref().on('value', function (snapshot) {
+                snapshot.forEach(function (childsnapshot) {
+                    var level = childsnapshot.val();
+                    var coordinates = childsnapshot.key;
+                    coordinates = coordinates.replace(/\'/g, "\.");
+                    var txt = coordinates.split("-");
+                    if (min > Math.abs(Math.abs(parseFloat(txt[0]) + parseFloat(txt[1])) - Math.abs(parseFloat(lon) + parseFloat(lat)))) {
+                        min = Math.abs(Math.abs(parseFloat(txt[0]) + parseFloat(txt[1])) - Math.abs(parseFloat(lon) + parseFloat(lat)));
+                        Lat = txt[0];
+                        Lon = txt[1];
+                        console.log(Lat);
+                    }
+                });
+                var coordinates = Lat + "-" + Lon;
                 coordinates = coordinates.replace(/\./g, "\'");
                 console.log(coordinates);
-                retrieveuserdata(coordinates);
-                L.marker([lat, lon]).addTo(map);
-                currentDiameter = L.circle([lat, lon],
-                    {
-                        color: 'yellow',
-                        fillColor: '#ffff00',
-                        fillOpacity: 0.5,
-                        radius: 100
-                    });
+                buildchart(coordinates);
+            });
 
-                currentDiameter.addTo(map);
-            }
-            function maxpollution() {
-                database.ref().on('value', function (snapshot) {
-                    snapshot.forEach(function (childsnapshot) {
-                        var level = childsnapshot.val();
-                        var coordinates = childsnapshot.key;
-                        coordinates = coordinates.replace(/\'/g, "\.");
-                        var txt = coordinates.split("-");
+            L.marker([lat, lon]).addTo(map);
+            currentDiameter = L.circle([lat, lon],
+                {
+                    color: 'yellow',
+                    fillColor: '#ffff00',
+                    fillOpacity: 0.5,
+                    radius: 100
+                });
 
+            currentDiameter.addTo(map);
+            myGraph = document.getElementById("chartContainer");
+            myGraph.style.zIndex = 2;
+
+        }
+        //
+        // Function that plots in the map all the points where pollution is above a certain level.           
+        //
+        function maxpollution() {
+            database.ref().on('value', function (snapshot) {
+                snapshot.forEach(function (childsnapshot) {
+
+                    var coordinates = childsnapshot.key;
+                    coordinates = coordinates.replace(/\'/g, "\.");
+                    var txt = coordinates.split("-");
+
+                    childsnapshot.forEach(function (childsnapshot2) {
+                        var level = childsnapshot2.val();
+                        var time = childsnapshot2.key;
+                        console.log(level);
                         if (level > 10) {
-                            //new L.marker([txt[0], txt[1]]).addTo(map);
                             currentDiameter = L.circle([txt[0], txt[1]],
                                 {
                                     color: 'red',
@@ -158,16 +204,16 @@
                                     fillOpacity: 0.5,
                                     radius: 100
                                 });
-
                             currentDiameter.addTo(map);
-                            console.log('Details', txt[0], txt[1]);
                         }
                     });
-                });
-            }
 
-        </script>
-    </center>
+                });
+            });
+        }
+
+    </script>
+
 </body>
 
 </html>

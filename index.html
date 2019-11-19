@@ -82,18 +82,21 @@
     <!--javascript Part-->
     <script>
         var database = firebase.database();
-        var dataPoints = [];
+
         //
         //function for searching the entered coordinated into the saved database.
         //
         function retrieveuserdata(location) {
+            var dataPoints = [];
             database.ref(location).on('value', function (childsnapshot) {
+
                 childsnapshot.forEach(function (snapshot) {
 
                     pollution = snapshot.val();
                     moment = snapshot.key;
                     moment = moment.replace(/\-/g, '\.')
                     console.log('Details', moment);
+
                     dataPoints.push({
                         y: parseFloat(pollution),
                         x: parseFloat(moment),
@@ -105,6 +108,7 @@
         }
 
         function buildchart(location) {
+
             var chart = new CanvasJS.Chart("chartContainer", {
 
                 theme: "light1",
@@ -132,6 +136,7 @@
                 ]
             });
             chart.render();
+
 
         }
 
@@ -179,6 +184,7 @@
             currentDiameter.addTo(map);
             myGraph = document.getElementById("chartContainer");
             myGraph.style.zIndex = 2;
+
 
         }
         //
